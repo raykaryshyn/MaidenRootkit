@@ -3,21 +3,33 @@
 #include <stdbool.h>
 #include <windows.h>
 
-const wchar_t* driverName = L"MaidenRootkit";
-const wchar_t* path = L"C:\\MaidenRootkit\\x64\\Debug\\RootkitDriver.sys";
+const wchar_t* serviceName = L"MaidenRootkit";
+const wchar_t* driverName = L"RootkitDriver";
 
-bool load(SC_HANDLE sh, const wchar_t* driverName, const wchar_t* path) {
+bool load(SC_HANDLE sh, const wchar_t* serviceName, const wchar_t* driverName) {
+	wchar_t currentDir[MAX_PATH];
+	wchar_t filePath[MAX_PATH];
+
+	if (GetCurrentDirectoryW(MAX_PATH, currentDir) > 0) {
+		swprintf(filePath, MAX_PATH, L"%s\\%s.sys", currentDir, driverName);
+		wprintf(L"Driver file path: %s\n", filePath);
+	}
+	else {
+		printf("Failed to get the current directory\n");
+		return false;
+	}
+
 	printf("Loading driver as a service...\n");
 
 	SC_HANDLE rh = CreateService(
 		sh,
-		driverName,
-		driverName,
+		serviceName,
+		serviceName,
 		SERVICE_ALL_ACCESS,
 		SERVICE_KERNEL_DRIVER,
 		SERVICE_DEMAND_START,
 		SERVICE_ERROR_NORMAL,
-		path,
+		filePath,
 		NULL,
 		NULL,
 		NULL,
@@ -138,19 +150,19 @@ int main() {
 	}
 
 	printf("[0] Load driver\n");
-	load(sh, driverName, path);
+	load(sh, serviceName, driverName);
 	printf("\n");
 
 	printf("[1] Start service\n");
-	start(sh, driverName);
+	start(sh, serviceName);
 	printf("\n");
 
 	printf("[2] Stop service\n");
-	stop(sh, driverName);
+	stop(sh, serviceName);
 	printf("\n");
 
 	printf("[3] Delete service\n");
-	delete(sh, driverName);
+	delete(sh, serviceName);
 	printf("\n");
 
 	CloseServiceHandle(sh);
