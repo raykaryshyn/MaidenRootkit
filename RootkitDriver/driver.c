@@ -5,6 +5,27 @@ PDEVICE_OBJECT g_RootkitDevice;
 const WCHAR deviceLinkBuffer[] = L"\\DosDevices\\Rootkit";
 const WCHAR deviceNameBuffer[] = L"\\Device\\Rootkit";
 
+typedef struct _IDTR {
+	USHORT Limit;
+	ULONG_PTR Base;
+} IDTR;
+
+typedef struct _IDT_ENTRY {
+	USHORT OffsetLow;
+	USHORT Selector;
+	UCHAR IST;
+	UCHAR TypeAttr;
+	USHORT OffsetMiddle;
+	ULONG OffsetHigh;
+	ULONG Reserved;
+} IDT_ENTRY;
+
+IDTR GetIDTBaseAddress() {
+	IDTR idtr = { 0 };
+	__sidt(&idtr);
+	return idtr;
+}
+
 NTSTATUS OnStubDispatch(
 	_In_ PDEVICE_OBJECT DeviceObject,
 	_In_ PIRP Irp
@@ -87,11 +108,14 @@ NTSTATUS DriverEntry(
 
 	theDriverObject->DriverUnload = OnUnload;
 
-	DbgPrint("Maximum Integer Value: %d\n", IRP_MJ_MAXIMUM_FUNCTION);
+	IDTR idtr = GetIDTBaseAddress();
+	DbgPrint("IDT Base Address: 0x%p\n", (PVOID)idtr.Base);
+	DbgPrint("Number of Entries in IDT: %u\n", (unsigned int)((idtr.Limit / sizeof(IDT_ENTRY)) + 1));
 
+	DbgPrint("Maximum IRP Value: %d\n", IRP_MJ_MAXIMUM_FUNCTION);
 	for (i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++)
 	{
-		DbgPrint("i: %d\n", i);
+		DbgPrint("IRP[%d]\n", i);
 		theDriverObject->MajorFunction[i] = OnStubDispatch;
 	}
 
